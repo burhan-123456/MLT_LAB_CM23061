@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MNIST CNN vs Dense (Minimal)</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    pre { background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+
+<body>
+
+<h2>📊 MNIST Comparison (Low Resource)</h2>
+<h3>CNN vs Dense Network</h3>
+
+<pre id="log"></pre>
+
+<script>
+const log = document.getElementById("log");
+
+/* 🔴 FORCE CPU BACKEND */
+(async () => {
+  await tf.setBackend('cpu');
+  await tf.ready();
+  log.innerText += "Backend: " + tf.getBackend() + "\n\n";
+})();
+
+/* ---------- LOAD MNIST ---------- */
+async function loadMNIST() {
+  const imgReq = await fetch(
+    "https://storage.googleapis.com/learnjs-data/model-builder/mnist_images.png"
+  );
+  const lblReq = await fetch(
+    "https://storage.googleapis.com/learnjs-data/model-builder/mnist_labels_uint8"
+  );
+
+  const imgBlob = await imgReq.blob();
+  const bitmap = await createImageBitmap(imgBlob);
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const IMAGE_SIZE = 784;
+  const NUM_IMAGES = 65000;
+
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  ctx.drawImage(bitmap, 0, 0);
+
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const images = new Float32Array(NUM_IMAGES * IMAGE_SIZE);
+
+  for (let i = 0; i < NUM_IMAGES; i++) {
+    for (let j = 0; j < IMAGE_SIZE; j++) {
+      images[i * IMAGE_SIZE + j] =
+        pixels[i * IMAGE_SIZE * 4 + j * 4] / 255;
+    }
+  }
+
+  const labels = new Uint8Array(await lblReq.arrayBuffer());
+  return { images, labels };
+}
+
+/* ---------- CNN (VERY LIGHT) ---------- */
+function createCNN() {
+  const model = tf.sequential();
+
+  model.add(tf.layers.conv2d({
+    inputShape: [28, 28, 1],
+    filters: 4,          // 🔽 very small
+    kernelSize: 3,
+    activation: 'relu'
+  }));
+  model.add(tf.layers.maxPooling2d({ poolSize: 2 }));
+  model.add(tf.layers.flatten());
+  model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+  model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
+
+  model.compile({
+    optimizer: 'adam',
+    loss: 'categoricalCrossentropy',
+    metrics: ['accuracy']
+  });
+
+  return model;
+}
+
+/* ---------- DENSE (VERY LIGHT) ---------- */
+function createDense() {
+  const model = tf.sequential();
+
+  model.add(tf.layers.flatten({ inputShape: [28, 28, 1] }));
+  model.add(tf.layers.dense({ units: 32, activation: 'relu' }));
+  model.add(tf.layers.dense({ units: 10, activation: 'softmax' }));
+
+  model.compile({
+    optimizer: 'adam',
+    loss: 'categoricalCrossentropy',
+    metrics: ['accuracy']
+  });
+
+  return model;
+}
+
+/* ---------- RUN EXPERIMENT ---------- */
+async function run() {
+  log.innerText += "Loading MNIST...\n";
+  const { images, labels } = await loadMNIST();
+
+  const TRAIN_SIZE = 1000; // 🔥 VERY SMALL
+
+  const xTrain = tf.tensor4d(
+    images.slice(0, TRAIN_SIZE * 784),
+    [TRAIN_SIZE, 28, 28, 1]
+  );
+
+  const yTrain = tf.oneHot(
+    tf.tensor1d(labels.slice(0, TRAIN_SIZE), 'int32'), 10
+  );
+
+  /* CNN */
+  log.innerText += "\nTraining CNN...\n";
+  const cnn = createCNN();
+  const cnnHist = await cnn.fit(xTrain, yTrain, {
+    epochs: 3,
+    batchSize: 16
+  });
+  const cnnAcc = cnnHist.history.acc.at(-1);
+  cnn.dispose();
+
+  /* Dense */
+  log.innerText += "\nTraining Dense...\n";
+  const dense = createDense();
+  const denseHist = await dense.fit(xTrain, yTrain, {
+    epochs: 3,
+    batchSize: 16
+  });
+  const denseAcc = denseHist.history.acc.at(-1);
+
+  log.innerText += "\n📈 Results\n";
+  log.innerText += `CNN Accuracy   : ${(cnnAcc * 100).toFixed(2)}%\n`;
+  log.innerText += `Dense Accuracy : ${(denseAcc * 100).toFixed(2)}%\n`;
+
+  xTrain.dispose();
+  yTrain.dispose();
+}
+
+run();
+</script>
+
+</body>
+</html>
