@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hello TensorFlow.js</title>
+
+  <!-- TensorFlow.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>👋 Hello TensorFlow.js </h2>
+<p></p>
+
+<pre id="output"></pre>
+
+<script>
+const out = document.getElementById("output");
+
+/* --------------------------------------------------
+1️⃣ CREATE TENSORS OF DIFFERENT DIMENSIONS
+-------------------------------------------------- */
+
+// Scalar (0D tensor)
+const scalar = tf.scalar(5);
+
+// Vector (1D tensor)
+const vector = tf.tensor1d([1, 2, 3]);
+
+// Matrix (2D tensor)
+const matrix = tf.tensor2d(
+  [[1, 2],
+   [3, 4]]
+);
+
+out.innerHTML += "Scalar:\n";
+scalar.print();
+
+out.innerHTML += "\nVector:\n";
+vector.print();
+
+out.innerHTML += "\nMatrix:\n";
+matrix.print();
+
+/* --------------------------------------------------
+2️⃣ ELEMENT-WISE ADDITION & MULTIPLICATION
+-------------------------------------------------- */
+
+const vectorA = tf.tensor1d([1, 2, 3]);
+const vectorB = tf.tensor1d([4, 5, 6]);
+
+// Element-wise addition
+const addResult = tf.add(vectorA, vectorB);
+
+// Element-wise multiplication
+const mulResult = tf.mul(vectorA, vectorB);
+
+out.innerHTML += "\nElement-wise Addition:\n";
+addResult.print();
+
+out.innerHTML += "\nElement-wise Multiplication:\n";
+mulResult.print();
+
+/* --------------------------------------------------
+3️⃣ RESHAPE vs FLATTEN
+-------------------------------------------------- */
+
+// Original tensor (2D)
+const originalTensor = tf.tensor2d(
+  [[1, 2, 3],
+   [4, 5, 6]]
+);
+
+out.innerHTML += "\nOriginal Tensor:\n";
+originalTensor.print();
+
+// Reshape (changes dimensions, keeps data)
+const reshapedTensor = originalTensor.reshape([3, 2]);
+
+out.innerHTML += "\nReshaped Tensor (3 x 2):\n";
+reshapedTensor.print();
+
+// Flatten (converts to 1D tensor)
+const flattenedTensor = originalTensor.flatten();
+
+out.innerHTML += "\nFlattened Tensor (1D):\n";
+flattenedTensor.print();
+</script>
+
+</body>
+</html>
