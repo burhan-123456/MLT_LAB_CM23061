@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tensor Creation</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+</head>
+<body>
+
+<h3>Hello TensorFlow.js</h3>
+<p>Open Console (F12)</p>
+
+<script>
+// Scalar (0D tensor)
+const scalar = tf.scalar(10);
+console.log("Scalar:");
+scalar.print();
+
+// Vector (1D tensor)
+const vector = tf.tensor1d([1, 2, 3, 4]);
+console.log("Vector:");
+vector.print();
+
+// Matrix (2D tensor)
+const matrix = tf.tensor2d([[1, 2], [3, 4]]);
+console.log("Matrix:");
+matrix.print();
+</script>
+
+</body>
+</html>

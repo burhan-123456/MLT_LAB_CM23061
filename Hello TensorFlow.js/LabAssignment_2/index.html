@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Element-wise Operations (Console Input)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+</head>
+<body>
+
+<h3> Hello TensorFlow.js Element-wise Vector Operations</h3>
+<p>
+  1. Open Console (F12)<br>
+  2. Enter vectorA and vectorB<br>
+  3. Call runOperations()
+</p>
+
+<script>
+// Step 1: declare variables (no values yet)
+let vectorA;
+let vectorB;
+
+// Step 2: function to run operations
+function runOperations() {
+  if (!Array.isArray(vectorA) || !Array.isArray(vectorB)) {
+    console.log("❌ Please define vectorA and vectorB as arrays in console");
+    return;
+  }
+
+  if (vectorA.length !== vectorB.length) {
+    console.log("❌ Vectors must be of same length");
+    return;
+  }
+
+  const a = tf.tensor1d(vectorA);
+  const b = tf.tensor1d(vectorB);
+
+  console.log("Vector A:");
+  a.print();
+
+  console.log("Vector B:");
+  b.print();
+
+  const addition = tf.add(a, b);
+  console.log("Element-wise Addition:");
+  addition.print();
+
+  const multiplication = tf.mul(a, b);
+  console.log("Element-wise Multiplication:");
+  multiplication.print();
+}
+</script>
+
+</body>
+</html>
