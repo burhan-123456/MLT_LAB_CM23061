@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rainfall vs Umbrellas Sold – Linear Regression</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { padding: 6px; margin: 6px 0; }
+    canvas { max-width: 750px; margin-top: 20px; }
+  </style>
+</head>
+
+<body>
+
+<h2>📈 Rainfall vs Umbrellas Sold (Client-Side ML)</h2>
+
+<input type="file" id="csvFile" accept=".csv">
+<button onclick="trainModel()">Train Model</button>
+
+<br><br>
+
+<input type="number" id="rainfallInput" placeholder="Rainfall (mm)">
+<button onclick="predict()">Predict Umbrellas Sold</button>
+
+<p id="predictionResult"></p>
+
+<canvas id="chart"></canvas>
+
+<script>
+let model;
+let xData = [], yData = [];
+let xMin, xMax, yMin, yMax;
+let chart;
+
+/* ---------- CSV PARSER (ROBUST) ---------- */
+function parseCSV(text) {
+  xData = [];
+  yData = [];
+
+  const lines = text.replace(/\r/g, '').trim().split('\n');
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 2) continue;
+
+    const x = parseFloat(cols[0].trim());
+    const y = parseFloat(cols[1].trim());
+
+    if (!isNaN(x) && !isNaN(y)) {
+      xData.push(x);
+      yData.push(y);
+    }
+  }
+
+  console.log("Rainfall:", xData);
+  console.log("Umbrellas:", yData);
+}
+
+/* ---------- NORMALIZATION ---------- */
+function normalize(arr) {
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  return {
+    data: arr.map(v => (v - min) / (max - min)),
+    min,
+    max
+  };
+}
+
+function denormalize(v, min, max) {
+  return v * (max - min) + min;
+}
+
+/* ---------- TRAIN MODEL ---------- */
+async function trainModel() {
+  const file = document.getElementById('csvFile').files[0];
+  if (!file) return alert("Please upload CSV file");
+
+  const text = await file.text();
+  parseCSV(text);
+
+  if (xData.length < 2) return alert("Invalid CSV data");
+
+  const nx = normalize(xData);
+  const ny = normalize(yData);
+
+  xMin = nx.min; xMax = nx.max;
+  yMin = ny.min; yMax = ny.max;
+
+  const xs = tf.tensor2d(nx.data, [nx.data.length, 1]);
+  const ys = tf.tensor2d(ny.data, [ny.data.length, 1]);
+
+  model = tf.sequential();
+  model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+
+  model.compile({
+    optimizer: tf.train.sgd(0.05),
+    loss: 'meanSquaredError'
+  });
+
+  await model.fit(xs, ys, {
+    epochs: 600,
+    verbose: 0
+  });
+
+  drawChart();
+  alert("✅ Model trained successfully");
+}
+
+/* ---------- DRAW BEST FIT LINE ---------- */
+function drawChart() {
+  const minX = Math.min(...xData);
+  const maxX = Math.max(...xData);
+
+  const lineX = [];
+  for (let x = minX; x <= maxX; x += (maxX - minX) / 40) {
+    lineX.push(x);
+  }
+
+  const lineY = lineX.map(x => {
+    const xNorm = (x - xMin) / (xMax - xMin);
+    const yNorm = model.predict(tf.tensor2d([[xNorm]])).dataSync()[0];
+    return denormalize(yNorm, yMin, yMax);
+  });
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Training Data',
+          data: xData.map((x, i) => ({ x, y: yData[i] }))
+        },
+        {
+          label: 'Best Fit Line',
+          type: 'line',
+          data: lineX.map((x, i) => ({ x, y: lineY[i] })),
+          fill: false
+        }
+      ]
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: 'Rainfall (mm)' } },
+        y: { title: { display: true, text: 'Umbrellas Sold' } }
+      }
+    }
+  });
+}
+
+/* ---------- PREDICT ---------- */
+function predict() {
+  if (!model) return alert("Train the model first");
+
+  const rainfall = parseFloat(
+    document.getElementById('rainfallInput').value
+  );
+
+  if (isNaN(rainfall)) return alert("Enter valid rainfall");
+
+  const xNorm = (rainfall - xMin) / (xMax - xMin);
+  const yNorm = model.predict(tf.tensor2d([[xNorm]])).dataSync()[0];
+  const prediction = denormalize(yNorm, yMin, yMax);
+
+  document.getElementById('predictionResult').innerText =
+    `☔ Predicted Umbrellas Sold: ${prediction.toFixed(2)}`;
+}
+</script>
+
+</body>
+</html>
