@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MobileNet v1 vs v2 Comparison</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    img { width: 300px; display: block; margin-bottom: 15px; }
+    .container { display: flex; gap: 40px; }
+    button { padding: 6px 12px; }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Image Classification Comparison</h2>
+<h3>MobileNet v1 vs MobileNet v2 (Dog Image)</h3>
+
+<img id="image"
+     src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg"
+     crossorigin="anonymous">
+
+<button id="classifyBtn" disabled>Loading models...</button>
+
+<div class="container">
+  <div>
+    <h3>MobileNet v1 Predictions</h3>
+    <ul id="mobilenetV1Results"></ul>
+  </div>
+
+  <div>
+    <h3>MobileNet v2 Predictions</h3>
+    <ul id="mobilenetV2Results"></ul>
+  </div>
+</div>
+
+<script>
+let mobilenetV1;
+let mobilenetV2;
+
+/* ---------- LOAD MODELS ---------- */
+async function loadModels() {
+  await tf.ready();
+
+  // MobileNet v1
+  mobilenetV1 = await mobilenet.load({
+    version: 1,
+    alpha: 1.0
+  });
+  console.log("✅ MobileNet v1 loaded");
+
+  // MobileNet v2
+  mobilenetV2 = await mobilenet.load({
+    version: 2,
+    alpha: 1.0
+  });
+  console.log("✅ MobileNet v2 loaded");
+
+  const btn = document.getElementById("classifyBtn");
+  btn.disabled = false;
+  btn.innerText = "Classify Image";
+  btn.onclick = classifyImage;
+}
+
+loadModels();
+
+/* ---------- CLASSIFY IMAGE ---------- */
+async function classifyImage() {
+  const img = document.getElementById("image");
+
+  // MobileNet v1
+  const predsV1 = await mobilenetV1.classify(img, 3);
+  const listV1 = document.getElementById("mobilenetV1Results");
+  listV1.innerHTML = "";
+  predsV1.forEach(p => {
+    const li = document.createElement("li");
+    li.textContent = `${p.className} — ${(p.probability * 100).toFixed(2)}%`;
+    listV1.appendChild(li);
+  });
+
+  // MobileNet v2
+  const predsV2 = await mobilenetV2.classify(img, 3);
+  const listV2 = document.getElementById("mobilenetV2Results");
+  listV2.innerHTML = "";
+  predsV2.forEach(p => {
+    const li = document.createElement("li");
+    li.textContent = `${p.className} — ${(p.probability * 100).toFixed(2)}%`;
+    listV2.appendChild(li);
+  });
+}
+</script>
+
+</body>
+</html>

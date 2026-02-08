@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Classification using MobileNet</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- MobileNet Model -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    img {
+      max-width: 300px;
+      margin-top: 10px;
+      display: block;
+    }
+    ul {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Image Classification using MobileNet</h2>
+
+<p>Static image classification with top-3 predictions</p>
+
+<!-- Static Image -->
+<img id="image" src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg" crossorigin="anonymous">
+
+<br>
+<button onclick="classifyImage()">Classify Image</button>
+
+<h3>Top-3 Predictions:</h3>
+<ul id="results"></ul>
+
+<script>
+let model;
+
+// Load MobileNet once
+async function loadModel() {
+  model = await mobilenet.load();
+  console.log("✅ MobileNet loaded");
+}
+
+loadModel();
+
+// Classify image
+async function classifyImage() {
+  const img = document.getElementById("image");
+  const predictions = await model.classify(img, 3);
+
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+
+  predictions.forEach(p => {
+    const li = document.createElement("li");
+    li.innerText = `${p.className} — ${(p.probability * 100).toFixed(2)}%`;
+    results.appendChild(li);
+  });
+}
+</script>
+
+</body>
+</html>
