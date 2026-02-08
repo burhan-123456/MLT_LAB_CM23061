@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Object Detection (Top-3)</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    video {
+      border: 2px solid black;
+    }
+    ul {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Webcam Object Detection (MobileNet)</h2>
+<p>Top-3 predictions (updated every 1 second)</p>
+
+<video id="webcam" width="300" height="225" autoplay></video>
+
+<h3>Predictions:</h3>
+<ul id="predictions">
+  <li>Loading model...</li>
+</ul>
+
+<script>
+let model;
+const video = document.getElementById("webcam");
+const predictionList = document.getElementById("predictions");
+
+let lastTime = 0;
+const INTERVAL = 1000; // 1 second
+
+/* ---------- SETUP WEBCAM ---------- */
+async function setupWebcam() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+
+  return new Promise(resolve => {
+    video.onloadedmetadata = () => resolve();
+  });
+}
+
+/* ---------- LOAD MODEL ---------- */
+async function loadModel() {
+  model = await mobilenet.load();
+  predictionList.innerHTML = "<li>Model loaded. Detecting...</li>";
+}
+
+/* ---------- PREDICT TOP-3 ---------- */
+async function predictFrame(time) {
+  if (time - lastTime >= INTERVAL) {
+    const predictions = await model.classify(video, 3);
+
+    predictionList.innerHTML = "";
+    predictions.forEach(p => {
+      const li = document.createElement("li");
+      li.textContent =
+        `${p.className} — ${(p.probability * 100).toFixed(2)}%`;
+      predictionList.appendChild(li);
+    });
+
+    lastTime = time;
+  }
+
+  requestAnimationFrame(predictFrame);
+}
+
+/* ---------- START ---------- */
+async function start() {
+  await setupWebcam();
+  await loadModel();
+  requestAnimationFrame(predictFrame);
+}
+
+start();
+</script>
+
+</body>
+</html>

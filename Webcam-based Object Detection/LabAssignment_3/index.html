@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Real-Time Object Detection (FPS Measurement)</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      position: relative;
+      width: 320px;
+    }
+
+    video, canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 320px;
+      height: 240px;
+      border: 2px solid black;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Real-Time Object Detection (FPS Measurement)</h2>
+
+<div class="container">
+  <video id="webcam" autoplay playsinline></video>
+  <canvas id="overlay"></canvas>
+</div>
+
+<script>
+let model;
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+
+/* ---------- FPS MEASUREMENT ---------- */
+let frameCount = 0;
+let lastFpsTime = performance.now();
+let fps = 0;
+
+/* ---------- PREDICTION CONTROL ---------- */
+let lastPredictionTime = 0;
+const PREDICT_INTERVAL = 1000; // 1 second
+let latestPredictions = [];
+
+/* ---------- SETUP WEBCAM ---------- */
+async function setupWebcam() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+
+  return new Promise(resolve => {
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      resolve();
+    };
+  });
+}
+
+/* ---------- LOAD MODEL ---------- */
+async function loadModel() {
+  model = await mobilenet.load();
+}
+
+/* ---------- DRAW OVERLAY ---------- */
+function drawOverlay() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  /* Top bar */
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.fillRect(0, 0, canvas.width, 80);
+
+  ctx.fillStyle = "white";
+  ctx.font = "16px Arial";
+
+  /* Predictions */
+  latestPredictions.forEach((p, i) => {
+    ctx.fillText(
+      `${i + 1}. ${p.className} (${(p.probability * 100).toFixed(1)}%)`,
+      10,
+      22 + i * 18
+    );
+  });
+
+  /* FPS bottom-left */
+  ctx.fillStyle = "yellow";
+  ctx.font = "14px Arial";
+  ctx.fillText(`FPS: ${fps}`, 10, canvas.height - 10);
+}
+
+/* ---------- MAIN LOOP ---------- */
+async function loop(time) {
+  /* FPS calculation */
+  frameCount++;
+  if (time - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = time;
+  }
+
+  /* Throttled prediction */
+  if (time - lastPredictionTime >= PREDICT_INTERVAL) {
+    latestPredictions = await model.classify(video, 3);
+    lastPredictionTime = time;
+  }
+
+  drawOverlay();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- START ---------- */
+async function start() {
+  await setupWebcam();
+  await loadModel();
+  requestAnimationFrame(loop);
+}
+
+start();
+</script>
+
+</body>
+</html>

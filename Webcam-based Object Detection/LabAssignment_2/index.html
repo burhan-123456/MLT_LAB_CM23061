@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Object Detection – Overlay Labels</title>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+
+  <!-- MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      position: relative;
+      width: 300px;
+    }
+
+    video, canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border: 2px solid black;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Webcam Object Detection (Overlay)</h2>
+<p>Top-3 predictions overlaid every 1 second</p>
+
+<div class="container">
+  <video id="webcam" width="300" height="225" autoplay></video>
+  <canvas id="overlay" width="300" height="225"></canvas>
+</div>
+
+<script>
+let model;
+const video = document.getElementById("webcam");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+
+let lastTime = 0;
+const INTERVAL = 1000; // 1 second
+
+/* ---------- SETUP WEBCAM ---------- */
+async function setupWebcam() {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.srcObject = stream;
+
+  return new Promise(resolve => {
+    video.onloadedmetadata = () => resolve();
+  });
+}
+
+/* ---------- LOAD MODEL ---------- */
+async function loadModel() {
+  model = await mobilenet.load();
+}
+
+/* ---------- DRAW OVERLAY ---------- */
+function drawOverlay(predictions) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillRect(0, 0, canvas.width, 70);
+
+  ctx.fillStyle = "white";
+  ctx.font = "16px Arial";
+
+  predictions.forEach((p, i) => {
+    const text =
+      `${i + 1}. ${p.className} (${(p.probability * 100).toFixed(1)}%)`;
+    ctx.fillText(text, 10, 20 + i * 18);
+  });
+}
+
+/* ---------- PREDICT & OVERLAY ---------- */
+async function predictFrame(time) {
+  if (time - lastTime >= INTERVAL) {
+    const predictions = await model.classify(video, 3);
+    drawOverlay(predictions);
+    lastTime = time;
+  }
+
+  requestAnimationFrame(predictFrame);
+}
+
+/* ---------- START ---------- */
+async function start() {
+  await setupWebcam();
+  await loadModel();
+  requestAnimationFrame(predictFrame);
+}
+
+start();
+</script>
+
+</body>
+</html>
